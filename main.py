@@ -4,19 +4,34 @@ import subprocess
 import shutil
 import os
 
-def start_nginx():
-    try:
-        subprocess.Popen(['start', 'nginx.exe'], shell=True)
-        messagebox.showinfo("Success", "NGINX started successfully!")
-    except Exception as e:
-        messagebox.showerror("Error", f"Failed to start NGINX!\n{str(e)}")
+nginx_process = None
 
-def run_nginx_command(command):
+def start_nginx(show_message=True):
+    global nginx_process
     try:
-        result = subprocess.run(['nginx', '-s', command], capture_output=True, text=True, check=True)
-        messagebox.showinfo("Success", f"Command '{command}' executed successfully!\n{result.stdout}")
+        nginx_process = subprocess.Popen(['nginx.exe'], shell=True)
+        if show_message:
+            messagebox.showinfo("Success", "NGINX started successfully!")
+    except Exception as e:
+        if show_message:
+            messagebox.showerror("Error", f"Failed to start NGINX!\n{str(e)}")
+
+def stop_nginx(show_message=True):
+    global nginx_process
+    try:
+        if nginx_process:
+            nginx_process.terminate()
+            nginx_process = None
+        subprocess.run(['TASKKILL', '/F', '/IM', 'nginx.exe'], capture_output=True, text=True, check=True)
+        if show_message:
+            messagebox.showinfo("Success", "NGINX stopped successfully!")
     except subprocess.CalledProcessError as e:
-        messagebox.showerror("Error", f"Command '{command}' failed!\n{e.stderr}")
+        if show_message:
+            messagebox.showerror("Error", f"Failed to stop NGINX!\n{e.stderr}")
+
+def reload_nginx():
+    stop_nginx(show_message=False)  # Do not show message box when stopping
+    start_nginx(show_message=False)  # Do not show message box when starting
 
 def import_conf_file():
     conf_file_path = filedialog.askopenfilename(title="Select NGINX Config File", filetypes=[("Conf Files", "*.conf")])
@@ -33,7 +48,7 @@ def create_ui():
 
     # Set the dimensions of the window
     window_width = 500
-    window_height = 350
+    window_height = 300
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
     position_top = int(screen_height / 2 - window_height / 2)
@@ -43,15 +58,13 @@ def create_ui():
     frame = tk.Frame(root)
     frame.pack(pady=20, padx=20)
 
-    tk.Button(frame, text="Start NGINX", command=start_nginx, width=30).grid(row=0, column=0, pady=5)
-    tk.Button(frame, text="Fast Shutdown", command=lambda: run_nginx_command("stop"), width=30).grid(row=1, column=0, pady=5)
-    tk.Button(frame, text="Graceful Shutdown", command=lambda: run_nginx_command("quit"), width=30).grid(row=2, column=0, pady=5)
-    tk.Button(frame, text="Reload Configuration", command=lambda: run_nginx_command("reload"), width=30).grid(row=3, column=0, pady=5)
-    tk.Button(frame, text="Reopen Log Files", command=lambda: run_nginx_command("reopen"), width=30).grid(row=4, column=0, pady=5)
-    tk.Button(frame, text="Import Config File", command=import_conf_file, width=30).grid(row=5, column=0, pady=5)
+    tk.Button(frame, text="Start NGINX", command=lambda: start_nginx(show_message=True), width=30).grid(row=0, column=0, pady=5)
+    tk.Button(frame, text="Stop NGINX", command=lambda: stop_nginx(show_message=True), width=30).grid(row=1, column=0, pady=5)
+    tk.Button(frame, text="Reload Configuration", command=reload_nginx, width=30).grid(row=2, column=0, pady=5)
+    tk.Button(frame, text="Reopen Log Files", command=lambda: messagebox.showinfo("Info", "Reopen Log Files command placeholder"), width=30).grid(row=3, column=0, pady=5)
+    tk.Button(frame, text="Import Config File", command=import_conf_file, width=30).grid(row=4, column=0, pady=5)
 
     root.mainloop()
 
 if __name__ == "__main__":
     create_ui()
-
