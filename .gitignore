@@ -1,0 +1,7 @@
+*.exe
+conf/
+contrib/
+docs/
+html/
+logs/
+temp/
